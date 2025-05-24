@@ -1,9 +1,15 @@
 print("[LogZombieHits] Script loaded (per-user log mode)")
 
+-- Ensure Events table exists (remove or modify this if Events is provided by the environment)
+Events = Events or {}
+Events.OnWeaponHitCharacter = Events.OnWeaponHitCharacter or { Add = function() end }
+Events.OnPlayerDeath = Events.OnPlayerDeath or { Add = function() end }
+
+local LOG_DIR = "~/gig_srv/logs/"
 -- Helper to get the log file path for a user
 local function getUserLogFile(player)
     local userId = player and player:getUsername() or "unknown"
-    return userId .. ".txt"
+    return LOG_DIR .. userId .. ".txt"
 end
 
 -- Log an action to the user's file
@@ -18,7 +24,10 @@ local function logAction(player, actionType, zombieID, weapon, damage)
     else
         return
     end
-    local file = getFileWriter(getUserLogFile(player), true, false)
+    local file = nil
+    if io and io.open then
+        file = io.open(getUserLogFile(player), "a")
+    end
     if file then
         file:write(line)
         file:close()
@@ -27,14 +36,12 @@ end
 
 -- Log hits and kills
 local function onWeaponHitCharacter(player, character, weapon, damage)
-    if player and character and instanceof(character, "IsoZombie") then
+    if player and character and character:isa("IsoZombie") then
         local zombieID = tostring(character:getOnlineID() or character:getUniqueID() or character)
         local weaponName = weapon and weapon:getName() or "Unknown"
         if character:isDead() then
-            print('LOG CUSTOM KILL', zombieID)
             logAction(player, "kill", zombieID, weaponName, damage)
         else
-            print('LOG CUSTOM HIT', zombieID)
             logAction(player, "hit", zombieID, weaponName, damage)
         end
     end
@@ -45,6 +52,6 @@ local function onPlayerDeath(player)
     logAction(player, "died")
 end
 
-Events.OnWeaponHitCharacter.Add(onWeaponHitCharacter)
-Events.OnPlayerDeath.Add(onPlayerDeath)
+Events.OnWeaponHitCharacter = onWeaponHitCharacter
+Events.OnPlayerDeath = onPlayerDeath
 print("[LogZombieHits] Event handlers registered (per-user log mode)")
