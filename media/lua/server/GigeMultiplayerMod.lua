@@ -1,16 +1,9 @@
 print("[LogZombieHits] Script loaded (per-user log mode)")
-local LOG_DIR
-if isServer() then
-    print('IS SERVER')
-    LOG_DIR = "/home/pzuser/gig_srv/logs/"
-else
-    print('IS SERVER NOT')
-    LOG_DIR = getCore():getMyDocumentFolder() .. "/Zomboid/Logs/"
-end
+
 -- Helper to get the log file path for a user
 local function getUserLogFile(player)
     local userId = player and player:getUsername() or "unknown"
-    return LOG_DIR .. userId .. ".txt"
+    return userId .. ".txt"
 end
 
 -- Log an action to the user's file
