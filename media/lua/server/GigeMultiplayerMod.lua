@@ -1,6 +1,6 @@
 local logutils = require "GigeUtils/logutils"
 
-local LOG_FOLDER = "/home/pzuser/gig_srv/logs/"
+local LOG_FOLDER = "logs/"
 logutils.ensureDirectory(LOG_FOLDER)
 
 local function createUserLog(username)
