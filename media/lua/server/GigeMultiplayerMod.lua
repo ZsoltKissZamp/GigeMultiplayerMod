@@ -1,57 +1,43 @@
-print("[LogZombieHits] Script loaded (per-user log mode)")
+local logutils = require "GigeUtils/logutils"
 
--- Ensure Events table exists (remove or modify this if Events is provided by the environment)
-Events = Events or {}
-Events.OnWeaponHitCharacter = Events.OnWeaponHitCharacter or { Add = function() end }
-Events.OnPlayerDeath = Events.OnPlayerDeath or { Add = function() end }
+local LOG_FOLDER = "/home/pzuser/gig_srv/logs"
+logutils.ensureDirectory(LOG_FOLDER)
 
-local LOG_DIR = "~/gig_srv/logs/"
--- Helper to get the log file path for a user
-local function getUserLogFile(player)
-    local userId = player and player:getUsername() or "unknown"
-    return LOG_DIR .. userId .. ".txt"
-end
-
--- Log an action to the user's file
-local function logAction(player, actionType, zombieID, weapon, damage)
-    local time = os.date("%H:%M:%S-%d:%m")
-    local userId = player and player:getUsername() or "unknown"
-    local line
-    if actionType == "died" then
-        line = string.format("died|%s|%s\n", time, userId)
-    elseif actionType == "kill" or actionType == "hit" then
-        line = string.format("%s|%s|%s|%s|%s|%.2f\n", actionType, time, userId, zombieID or "", weapon or "", damage or 0)
-    else
-        return
-    end
-    local file = nil
-    if io and io.open then
-        file = io.open(getUserLogFile(player), "a")
-    end
-    if file then
-        file:write(line)
-        file:close()
+local function createUserLog(username)
+    local logFilePath = LOG_FOLDER .. username .. ".log"
+    if not logutils.fileExists(logFilePath) then
+        logutils.writeLogLine(logFilePath, "Log created for user: " .. username .. "\n")
+        logutils.writeLogLine(logFilePath, "Timestamp: " .. os.date() .. "\n")
     end
 end
 
--- Log hits and kills
-local function onWeaponHitCharacter(player, character, weapon, damage)
-    if player and character and character:isa("IsoZombie") then
-        local zombieID = tostring(character:getOnlineID() or character:getUniqueID() or character)
-        local weaponName = weapon and weapon:getName() or "Unknown"
-        if character:isDead() then
-            logAction(player, "kill", zombieID, weaponName, damage)
+local function logUserAction(username, action, weapon, damage)
+    local logFilePath = LOG_FOLDER .. username .. ".log"
+    logutils.writeLogLine(logFilePath,
+        "[" ..
+        os.date() ..
+        "] " .. action .. ": " .. username .. " with " .. weapon .. " (Damage: " .. tostring(damage) .. ")\n")
+end
+
+local function onPlayerConnect(player)
+    local username = player:getUsername()
+    createUserLog(username)
+end
+
+local function onWeaponHitCharacter(player, target, weapon, damage)
+    if instanceof(target, "IsoZombie") then
+        local username = player:getUsername()
+        if target:isDead() then
+            logUserAction(username, "KILL", weapon:getName(), damage)
         else
-            logAction(player, "hit", zombieID, weaponName, damage)
+            logUserAction(username, "HIT", weapon:getName(), damage)
         end
     end
 end
 
--- Log player death
-local function onPlayerDeath(player)
-    logAction(player, "died")
+if Events and Events.OnPlayerConnect then
+    Events.OnPlayerConnect.Add(onPlayerConnect)
 end
-
-Events.OnWeaponHitCharacter = onWeaponHitCharacter
-Events.OnPlayerDeath = onPlayerDeath
-print("[LogZombieHits] Event handlers registered (per-user log mode)")
+if Events and Events.OnWeaponHitCharacter then
+    Events.OnWeaponHitCharacter.Add(onWeaponHitCharacter)
+end
