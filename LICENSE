@@ -1,0 +1,59 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+
+public class GigeMultiplayerMod
+{
+    private string logFolderPath = "GigeLogs"; // Folder to store logs
+    private Dictionary<string, StreamWriter> userLogWriters = new Dictionary<string, StreamWriter>();
+
+    public void Start()
+    {
+        // Create log folder if it doesn't exist
+        if (!Directory.Exists(logFolderPath))
+        {
+            Directory.CreateDirectory(logFolderPath);
+        }
+    }
+
+    public void OnUserConnect(string username)
+    {
+        // Create a log file for the user if it doesn't exist
+        string logFilePath = Path.Combine(logFolderPath, $"{username}.log");
+        if (!userLogWriters.ContainsKey(username))
+        {
+            StreamWriter writer = new StreamWriter(logFilePath, true);
+            userLogWriters[username] = writer;
+        }
+    }
+
+    public void OnUserHitZombie(string username, int damage)
+    {
+        LogAction(username, "HIT", damage);
+    }
+
+    public void OnUserKillZombie(string username, int damage)
+    {
+        LogAction(username, "KILL", damage);
+    }
+
+    private void LogAction(string username, string action, int damage)
+    {
+        if (userLogWriters.ContainsKey(username))
+        {
+            StreamWriter writer = userLogWriters[username];
+            writer.WriteLine($"{DateTime.Now}: {username} {action} Zombie with {damage} damage.");
+            writer.Flush(); // Ensure the log is written immediately
+        }
+    }
+
+    public void OnUserDisconnect(string username)
+    {
+        // Close the log file when the user disconnects
+        if (userLogWriters.ContainsKey(username))
+        {
+            userLogWriters[username].Close();
+            userLogWriters.Remove(username);
+        }
+    }
+}

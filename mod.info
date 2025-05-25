@@ -1,0 +1,45 @@
+class GigeMultiplayerMod {
+    string logFolderPath = "path/to/logs/";
+
+    // Method to initialize the mod
+    void Initialize() {
+        CreateLogFolder();
+    }
+
+    // Method to create the log folder if it doesn't exist
+    void CreateLogFolder() {
+        if (!Directory.Exists(logFolderPath)) {
+            Directory.CreateDirectory(logFolderPath);
+        }
+    }
+
+    // Method to handle user connection
+    void OnUserConnect(User user) {
+        string userLogFilePath = logFolderPath + user.ID + ".log";
+        if (!File.Exists(userLogFilePath)) {
+            File.Create(userLogFilePath).Close(); // Create and close the file
+        }
+    }
+
+    // Method to log user actions
+    void LogUserAction(User user, string action, string weapon, int damage) {
+        string userLogFilePath = logFolderPath + user.ID + ".log";
+        string logEntry = $"{GetCurrentTime()} - {user.ID} {action} with {weapon} for {damage} damage\n";
+        File.AppendAllText(userLogFilePath, logEntry);
+    }
+
+    // Event handler for when a user hits a zombie
+    void OnUserHitZombie(User user, Zombie zombie, string weapon, int damage) {
+        LogUserAction(user, "hit a zombie", weapon, damage);
+    }
+
+    // Event handler for when a user kills a zombie
+    void OnUserKillZombie(User user, Zombie zombie, string weapon, int damage) {
+        LogUserAction(user, "killed a zombie", weapon, damage);
+    }
+
+    // Helper method to get the current time
+    string GetCurrentTime() {
+        return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+}
